@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'users',
     'payments',
     'corsheaders'
 ]
@@ -67,7 +68,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
-
+ALLOWED_HOSTS = ['47.130.34.119', 'baithulmal.lk', 'www.baithulmal.lk', 'localhost', '127.0.0.1']
 
 CSRF_TRUSTED_ORIGINS = ['https://baithulmal.lk', 'https://www.baithulmal.lk']
 
@@ -89,7 +90,8 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['/home/ubuntu/staging2/Baithulmal/frontend'],
+        # Use os.path.join to make the path compatible with any OS
+        'DIRS': [os.path.join(BASE_DIR, 'static')], 
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -155,3 +157,5 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+AUTH_USER_MODEL = 'users.CustomUser'

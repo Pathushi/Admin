@@ -1,0 +1,207 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ceylon Baithulmal | Admin Dashboard</title>
+
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}" />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div style="display: flex; min-height: 100vh">
+      <aside class="sidebar">
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 30px;
+          "
+        >
+          <i
+            class="fas fa-mosque"
+            style="color: var(--primary-green); font-size: 1.5rem"
+          ></i>
+          <h2 style="margin: 0; font-size: 1.2rem">Admin Portal</h2>
+        </div>
+
+        <nav>
+          <a href="/dashboard/" class="nav-item active">
+            <i class="fas fa-th-large"></i> Dashboard
+          </a>
+          <a href="/admin/payments/payment/" class="nav-item" target="_blank">
+            <i class="fas fa-hand-holding-heart"></i> Donations
+          </a>
+          <a href="/admin/users/customuser/" class="nav-item" target="_blank">
+            <i class="fas fa-users"></i> User Management
+          </a>
+          <a
+            href="/admin/payments/contactmessage/"
+            class="nav-item"
+            target="_blank"
+          >
+            <i class="fas fa-envelope"></i> Messages
+          </a>
+          <a href="/payments/api/donations/report/" class="nav-item">
+            <i class="fas fa-file-pdf"></i> Generate Report
+          </a>
+        </nav>
+      </aside>
+
+      <main style="flex: 1; padding: 2rem; overflow-y: auto">
+        <header
+          style="
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <div>
+            <h1 style="margin: 0">Main Dashboard</h1>
+            <p style="color: var(--text-muted); margin-top: 5px">
+              Welcome back, Admin
+            </p>
+          </div>
+          <a
+            href="/payments/api/donations/report/"
+            style="
+              background-color: var(--primary-green);
+              color: white;
+              padding: 10px 20px;
+              border-radius: 8px;
+              text-decoration: none;
+              font-weight: bold;
+              font-size: 0.9rem;
+            "
+          >
+            <i class="fas fa-download" style="margin-right: 8px"></i> Export PDF
+            Report
+          </a>
+        </header>
+
+        <div
+          style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+          "
+        >
+          <div class="card">
+            <div class="stat-label">Total Collections</div>
+            <div class="stat-value" id="total-val">Rs. 0.00</div>
+            <div style="font-size: 0.8rem; color: var(--primary-green)">
+              +12% from last month
+            </div>
+          </div>
+          <div class="card">
+            <div class="stat-label">This Month</div>
+            <div class="stat-value" id="month-val">Rs. 0.00</div>
+          </div>
+          <div class="card">
+            <div class="stat-label">Failed Payments</div>
+            <div class="stat-value" id="failed-val" style="color: #ef4444">
+              0
+            </div>
+          </div>
+          <div class="card">
+            <div class="stat-label">New Messages</div>
+            <div class="stat-value" id="msg-val">0</div>
+          </div>
+        </div>
+
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+          "
+        >
+          <div class="card">
+            <h3 style="margin-top: 0">Project Distribution</h3>
+            <canvas id="projectChart"></canvas>
+          </div>
+          <div class="card">
+            <h3 style="margin-top: 0">Recent Donations</h3>
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Donor</th>
+                  <th>Category</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="recent-donations-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      // Corrected paths to include the '/payments/' prefix
+      fetch("/payments/api/stats/")
+        .then((res) => {
+          if (!res.ok)
+            throw new Error(
+              "API path not found. Ensure '/payments/' prefix is correct.",
+            );
+          return res.json();
+        })
+        .then((data) => {
+          // Update Summary Values
+          document.getElementById("total-val").innerText =
+            "Rs. " + data.summary.total.toLocaleString();
+          document.getElementById("month-val").innerText =
+            "Rs. " + data.summary.month.toLocaleString();
+          document.getElementById("failed-val").innerText =
+            data.summary.failed_total;
+          document.getElementById("msg-val").innerText =
+            data.summary.new_messages;
+
+          // Populate Recent Activity Table
+          const tableBody = document.getElementById("recent-donations-body");
+          tableBody.innerHTML = ""; // Clear loader
+          data.recent.forEach((item) => {
+            const row = `
+                <tr>
+                    <td>${item.first_name}</td>
+                    <td>${item.donate_to}</td>
+                    <td>Rs. ${item.amount.toLocaleString()}</td>
+                    <td><span class="badge badge-success text-sm">Verified</span></td>
+                </tr>
+            `;
+            tableBody.innerHTML += row;
+          });
+
+          // Initialize Doughnut Chart
+          new Chart(document.getElementById("projectChart"), {
+            type: "doughnut",
+            data: {
+              labels: data.pie_chart.map((item) => item.donate_to),
+              datasets: [
+                {
+                  data: data.pie_chart.map((item) => item.value),
+                  backgroundColor: ["#10B981", "#3B82F6", "#F59E0B", "#EF4444"],
+                },
+              ],
+            },
+            options: {
+              plugins: { legend: { position: "bottom" } },
+            },
+          });
+        })
+        .catch((err) => console.error("Dashboard Load Error:", err));
+    </script>
+  </body>
+</html>
